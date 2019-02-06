@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 
-cwd = "/Users/williamst-arnaud/U de M/IFT6135/assignment1"
+cwd = os.path.dirname(os.path.realpath(__file__))
 
 
 def load_data(path=cwd):

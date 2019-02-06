@@ -5,12 +5,14 @@ from NN import ConvNet
 import argparse
 import numpy as np
 import os
+from plot import Graph
 
 
 parser = argparse.ArgumentParser(description="Script to train a convolutional network")
 parser.add_argument("--path", default=util.cwd)
 parser.add_argument("--mb", default=64, type=int)
 parser.add_argument("--epochs", default=1000, type=int)
+parser.add_argument("--plot", default=True, type=bool)
 parser.add_argument("--lr", default=None, type=float)
 parser.add_argument("--restore", action="store_true")
 
@@ -57,7 +59,7 @@ def adam_optimizer(net, lr):
     return loss, opt
 
 
-def train_net(conv_net, batch_size, n_epochs, lr=None, start_epoch=0, start_loss=0):
+def train_net(conv_net, batch_size, n_epochs, lr=None, graph=None):
     """
     Function that trains a network
     :param conv_net: The network to train
@@ -66,13 +68,14 @@ def train_net(conv_net, batch_size, n_epochs, lr=None, start_epoch=0, start_loss
     :param lr: The learning rate of the network
     :param start_epoch: The epoch number from which to start. Used when restoring checkpoint
     :param start_loss: The starting training loss. Used when restoring checkpoint
+    :param graph: Graph object that will keep track of the loss function for the training set and the validation set
     :return:
     """
     # get data
     train, valid, test = util.load_data()
 
     # reshape the data from MNIST to the right shapes
-    reshape = lambda x: np.reshape(x, [-1, 1, 28, 28])
+    def reshape(x): return np.reshape(x, [-1, 1, 28, 28])
     train[0], valid[0], test[0] = [reshape(dataset[0]) for dataset in [train, valid, test]]
 
     # get mini-batches schedule for training
@@ -81,7 +84,13 @@ def train_net(conv_net, batch_size, n_epochs, lr=None, start_epoch=0, start_loss
     # Create the loss operation and the optimizer
     loss_op, opt = adam_optimizer(conv_net, lr)
 
-    for epoch in range(start_epoch, n_epochs):
+    # get the starting epoch number
+    start_epoch = 0
+    if graph is not None:
+        start_epoch = graph.epoch
+
+    # Train the network
+    for epoch in range(start_epoch, n_epochs+start_epoch):
         train_loss = 0
 
         for idx, batch in enumerate(train[0]):
@@ -115,14 +124,20 @@ def train_net(conv_net, batch_size, n_epochs, lr=None, start_epoch=0, start_loss
         loss = loss_op(output, label)
         valid_loss += loss.item()
 
+        # add the training loss and validation to the graph object
+        if graph is not None:
+            graph.add_loss(train_loss / len(train[0]), "training")
+            graph.add_loss(valid_loss, "validation")
 
-def checkpoint(conv_net, optimizer, loss, epoch, path=os.path.join(util.cwd, "checkpoints")):
+
+def checkpoint(conv_net, optimizer, loss, epoch, graph, path=os.path.join(util.cwd, "checkpoints")):
     """
     Function that creates a checkpoint
     :param conv_net: The convolutional network
     :param optimizer: The optimizer that is used
     :param loss: The current loss
     :param epoch: The current epoch
+    :param graph: The graph object to plot the data
     :param path: The path where to save the checkpoint
     :return:
     """
@@ -130,7 +145,8 @@ def checkpoint(conv_net, optimizer, loss, epoch, path=os.path.join(util.cwd, "ch
         "epoch": epoch,
         "model_state_dict": conv_net.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),
-        "loss": loss
+        "loss": loss,
+        "graph": graph
     }, path)
 
 
@@ -156,9 +172,10 @@ def load_model(conv_net, optimizer, path):
     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     epoch = checkpoint["epoch"]
     loss = checkpoint["loss"]
+    graph = checkpoint["graph"]
     conv_net.train()
 
-    return conv_net, optimizer, epoch, loss
+    return conv_net, optimizer, epoch, loss, graph
 
 
 if "__main__" == __name__:
@@ -168,13 +185,19 @@ if "__main__" == __name__:
     _, optimizer = adam_optimizer(conv_net, namespace.lr)
     if namespace.restore:
         # restore the network
-        conv_net, optimizer, epoch, loss = load_model(conv_net, optimizer, namespace.path)
+        conv_net, optimizer, epoch, loss, graph = load_model(conv_net, optimizer, namespace.path)
 
         # train the network
-        train_net(conv_net, namespace.mb, namespace.epochs, namespace.lr, start_epoch=epoch, start_loss=loss)
+        epoch += 1
+        train_net(conv_net, namespace.mb, namespace.epochs, namespace.lr, graph)
     else:
+        # create new graph object if plot is  true
+        graph = None
+        if namespace.plot:
+            graph = Graph()
+
         # train the network
-        train_net(conv_net, namespace.mb, namespace.epochs, namespace.lr)
+        train_net(conv_net, namespace.mb, namespace.epochs, namespace.lr, graph)
 
     # save the parameters
     save_model(conv_net, namespace.path)
