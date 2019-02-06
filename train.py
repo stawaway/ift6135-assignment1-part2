@@ -9,7 +9,7 @@ from plot import Graph
 
 
 parser = argparse.ArgumentParser(description="Script to train a convolutional network")
-parser.add_argument("--path", default=util.cwd)
+parser.add_argument("--path", default=os.path.join(util.cwd, "model.pt"))
 parser.add_argument("--mb", default=64, type=int)
 parser.add_argument("--epochs", default=1000, type=int)
 parser.add_argument("--plot", default=True, type=bool)
@@ -66,8 +66,6 @@ def train_net(conv_net, batch_size, n_epochs, lr=None, graph=None):
     :param batch_size: The size of the mini-batches on which the network trains
     :param n_epochs: The number of training epochs
     :param lr: The learning rate of the network
-    :param start_epoch: The epoch number from which to start. Used when restoring checkpoint
-    :param start_loss: The starting training loss. Used when restoring checkpoint
     :param graph: Graph object that will keep track of the loss function for the training set and the validation set
     :return:
     """
@@ -129,8 +127,13 @@ def train_net(conv_net, batch_size, n_epochs, lr=None, graph=None):
             graph.add_loss(train_loss / len(train[0]), "training")
             graph.add_loss(valid_loss, "validation")
 
+        # save checkpoint every 100 epochs
+        if (epoch+1) % 100 == 0:
+            checkpoint(conv_net, opt, valid_loss, epoch, graph,
+                       os.path.join(util.cwd, "checkpoints/checkpoint_{}".format(epoch)))
 
-def checkpoint(conv_net, optimizer, loss, epoch, graph, path=os.path.join(util.cwd, "checkpoints")):
+
+def checkpoint(conv_net, optimizer, loss, epoch, graph, path):
     """
     Function that creates a checkpoint
     :param conv_net: The convolutional network
@@ -147,7 +150,7 @@ def checkpoint(conv_net, optimizer, loss, epoch, graph, path=os.path.join(util.c
         "optimizer_state_dict": optimizer.state_dict(),
         "loss": loss,
         "graph": graph
-    }, path)
+    }, os.path.join(path, "checkpoint_{}".format(epoch)))
 
 
 def save_model(conv_net, path):
