@@ -12,16 +12,22 @@ class Graph(object):
         self.validation_loss = []
         self.test_loss = []
         self.epoch = 0
+        self.training_accuracy = []
+        self.validation_accuracy = []
+        self.test_accuracy = []
 
-    def add_loss(self, loss, dataset):
+    def add_epoch(self, loss, acc, dataset):
         """
-        Method that adds the loss to all the previous losses for a particular operation
+        Method that adds the loss and accuracy to all the previous ones for a particular data set
         :param loss: The loss that we add after an epoch
+        :param acc: The accuracy that was computed after an epoch
         :param dataset: The data set from which the loss was computed
         :return:
         """
-        list = getattr(self, dataset + "_loss")
-        list.append(loss)
+        loss_list = getattr(self, dataset + "_loss")
+        loss_list.append(loss)
+        acc_list = getattr(self, dataset + "_accuracy")
+        acc_list.append(acc)
         self.epoch += 1
 
     def plot(self, dataset):

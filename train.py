@@ -11,7 +11,7 @@ from plot import Graph
 parser = argparse.ArgumentParser(description="Script to train a convolutional network")
 parser.add_argument("--path", default=os.path.join(util.cwd, "model.pt"))
 parser.add_argument("--mb", default=64, type=int)
-parser.add_argument("--epochs", default=1000, type=int)
+parser.add_argument("--epochs", default=10, type=int)
 parser.add_argument("--plot", default=True, type=bool)
 parser.add_argument("--lr", default=None, type=float)
 parser.add_argument("--restore", action="store_true")
@@ -90,6 +90,7 @@ def train_net(conv_net, batch_size, n_epochs, lr=None, graph=None):
     # Train the network
     for epoch in range(start_epoch, n_epochs+start_epoch):
         train_loss = 0
+        train_acc = 0
 
         for idx, batch in enumerate(train[0]):
             label = train[1][idx]
@@ -106,26 +107,32 @@ def train_net(conv_net, batch_size, n_epochs, lr=None, graph=None):
             loss.backward()
             opt.step()
 
-            # add current loss to the total training loss
+            # add current loss and accuracy to the total training loss and accuracy
             train_loss += loss.item()
+            train_acc += torch.eq(output.argmax(dim=1), label).float().mean().item()
 
-        # print training loss
-        print("Training loss after epoch {} is: ".format(epoch), train_loss / len(train[0]))
+        # print training loss and accuracy
+        train_loss = train_loss / len(train[0])
+        train_acc = train_acc / len(train[0])
+        print("Training loss after epoch {} is: ".format(epoch), train_loss,
+              "\t", "Training accuracy after epoch {} is: ".format(epoch), train_acc)
 
-        # total validation loss for the epoch
-        valid_loss = 0
-
-        # after an epoch, compute the loss on the validation set
+        # after an epoch, compute the loss and accuracy on the validation set
         data, label = valid
         data, label = torch.from_numpy(data), torch.from_numpy(label)
         output = conv_net(data)
         loss = loss_op(output, label)
-        valid_loss += loss.item()
+        valid_loss = loss.item()
+        valid_acc = torch.eq(output.argmax(dim=1), label).float().mean().item()
 
-        # add the training loss and validation to the graph object
+        # print validation loss and accuracy
+        print("Validation loss after epoch {} is: ".format(epoch), valid_loss,
+              "\t", "Validation accuracy after epoch {} is: ".format(epoch), valid_acc, "\n")
+
+        # add the loss and accuracy to the training and validation set for the graph object
         if graph is not None:
-            graph.add_loss(train_loss / len(train[0]), "training")
-            graph.add_loss(valid_loss, "validation")
+            graph.add_epoch(train_loss, train_acc, "training")
+            graph.add_epoch(valid_loss, valid_acc, "validation")
 
         # save checkpoint every 100 epochs
         if (epoch+1) % 100 == 0:
