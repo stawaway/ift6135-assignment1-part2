@@ -5,7 +5,7 @@ import numpy as np
 cwd = os.path.dirname(os.path.realpath(__file__))
 
 
-def load_data(path=os.path.join(cwd, "mnist.py")):
+def load_data(path=os.path.join(cwd, "mnist.npy")):
     """
     Function to load the data
     :param path: Path from where we load the data
