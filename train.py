@@ -48,7 +48,7 @@ def adam_optimizer(net, lr):
     """
     # if learning rate is None, then use default one
     if lr is None:
-        lr = 1e-3
+        lr = 1e-4
 
     # The loss operation
     loss = torch.nn.CrossEntropyLoss()
@@ -208,6 +208,10 @@ if "__main__" == __name__:
 
         # train the network
         train_net(conv_net, namespace.mb, namespace.epochs, namespace.lr, graph)
+
+        if namespace.plot:
+            graph.plot("training")
+            graph.plot("validation")
 
     # save the parameters
     save_model(conv_net, namespace.path)
