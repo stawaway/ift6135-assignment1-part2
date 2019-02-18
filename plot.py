@@ -50,4 +50,7 @@ class Graph(object):
 
         # save the graph to file
         save_path = input("Where do you want to save the file?: ")
-        plt.savefig(os.path.join(cwd, save_path))
+        try:
+            plt.savefig(os.path.join(cwd, save_path))
+        except FileNotFoundError:
+            pass
