@@ -1,0 +1,5 @@
+To train a model, run the script train.py
+You can pass various parameters that are different from the default ones
+e.g. ./train.py --path=[PATH_TO_SAVED_MODEL_PARAMETERS] --epochs=20
+
+You can evaluate the model on the test set by running eval.py
