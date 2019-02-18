@@ -4,4 +4,4 @@ e.g. ./train.py --path=[PATH_TO_SAVED_MODEL_PARAMETERS] --epochs=20
 
 You can evaluate the model on the test set by running eval.py
 
-Make sure you specify the path to the MNIST dataset in both cases
+Make sure you specify the path to the MNIST dataset in both cases (npy file). Can use download.py first
